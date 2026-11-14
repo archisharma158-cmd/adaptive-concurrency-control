@@ -1,0 +1,7 @@
+MAE,RMSE,R2,MAPE_%,n_samples,model,target
+0.012359,0.020063,0.978787,8.75,595,persistence_baseline,contention
+0.01339,0.025054,0.966919,9.21,595,random_forest,contention
+0.013462,0.023804,0.970138,9.18,595,xgboost,contention
+4.092924,6.559248,0.984598,8.28,595,persistence_baseline,network
+4.791646,8.93364,0.97143,9.89,595,random_forest,network
+4.736314,8.492957,0.974179,9.86,595,xgboost,network

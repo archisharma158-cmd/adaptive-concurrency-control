@@ -1,0 +1,7 @@
+config_file: config.yaml
+description: Synthetic experiment data for pipeline testing. NOT real experimental
+  results.
+generated_at: '2026-11-14T22:15:24.940013'
+n_experiments: 25
+n_observations: 3000
+source: synthetic

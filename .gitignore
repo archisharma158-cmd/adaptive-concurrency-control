@@ -1,0 +1,48 @@
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data files (keep sample, ignore large raw/processed)
+data/raw/*.csv
+data/processed/*.csv
+!data/sample/*.csv
+
+# Trained models (binary, large)
+models/saved/*.joblib
+models/saved/*.pkl
+models/saved/*.json
+
+# Results figures (regenerated from code)
+results/figures/*.png
+results/figures/*.pdf
+
+# Optuna databases
+*.db
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+

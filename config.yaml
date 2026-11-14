@@ -1,0 +1,217 @@
+# =============================================================================
+# Adaptive Concurrency Control - Experiment Configuration
+# =============================================================================
+# This file defines all configurable parameters for the research pipeline.
+# Modify values here rather than hardcoding them in scripts.
+
+project:
+  name: "adaptive-concurrency-control"
+  version: "0.1.0"
+  description: >
+    Predictive Network- and Contention-Aware Concurrency Control Switching
+    with Switching-Cost Optimization in Distributed Databases.
+
+# ---------------------------------------------------------------------------
+# Data paths
+# ---------------------------------------------------------------------------
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  sample_dir: "data/sample"
+  sample_filename: "synthetic_experiment_data.csv"
+
+# ---------------------------------------------------------------------------
+# Synthetic data generation parameters
+# ---------------------------------------------------------------------------
+# NOTE: This generates SYNTHETIC data for pipeline testing ONLY.
+# Real experimental data must come from actual benchmark runs.
+synthetic:
+  random_seed: 42
+  sampling_interval_sec: 5        # seconds between observations
+  observations_per_scenario: 120  # 10 minutes per scenario at 5s intervals
+
+  # Experiment scenarios (all combinations generated)
+  scenarios:
+    workload_types: ["read_heavy", "write_heavy", "mixed", "scan_heavy"]
+    read_write_ratios: [0.95, 0.5, 0.7, 0.1]  # matching workload_types order
+    contention_levels: ["low", "high"]
+    network_conditions: ["normal", "degraded"]
+    # Dynamic change scenarios (appended separately)
+    dynamic_scenarios:
+      - name: "sudden_workload_spike"
+        description: "Low contention jumps to high contention mid-experiment"
+      - name: "sudden_network_degradation"
+        description: "Normal network degrades to high latency mid-experiment"
+      - name: "simultaneous_change"
+        description: "Both workload and network change simultaneously"
+
+  # Parameter ranges for synthetic generation
+  parameters:
+    # Low contention
+    low_contention:
+      concurrent_transactions: [10, 50]
+      transaction_rate: [100, 500]
+      conflict_rate: [0.01, 0.10]
+      abort_rate: [0.005, 0.05]
+      queue_length: [0, 20]
+    # High contention
+    high_contention:
+      concurrent_transactions: [50, 200]
+      transaction_rate: [500, 2000]
+      conflict_rate: [0.10, 0.60]
+      abort_rate: [0.05, 0.40]
+      queue_length: [20, 200]
+    # Normal network
+    normal_network:
+      network_rtt_ms: [0.5, 5.0]
+      network_jitter_ms: [0.1, 1.0]
+      packet_loss_rate: [0.0, 0.001]
+    # Degraded network
+    degraded_network:
+      network_rtt_ms: [20.0, 200.0]
+      network_jitter_ms: [5.0, 50.0]
+      packet_loss_rate: [0.01, 0.10]
+
+  # Supported concurrency control protocols
+  protocols: ["OCC", "2PL", "MVCC"]
+
+# ---------------------------------------------------------------------------
+# Preprocessing
+# ---------------------------------------------------------------------------
+preprocessing:
+  # Validation bounds (values outside these are flagged, not deleted)
+  bounds:
+    conflict_rate: [0.0, 1.0]
+    abort_rate: [0.0, 1.0]
+    packet_loss_rate: [0.0, 1.0]
+    network_rtt_ms: [0.0, 10000.0]
+    network_jitter_ms: [0.0, 5000.0]
+    throughput_tps: [0.0, 1000000.0]
+    average_latency_ms: [0.0, 100000.0]
+    p95_latency_ms: [0.0, 100000.0]
+    p99_latency_ms: [0.0, 100000.0]
+    concurrent_transactions: [1, 10000]
+    transaction_rate: [0.0, 1000000.0]
+    queue_length: [0, 100000]
+
+# ---------------------------------------------------------------------------
+# Prediction target
+# ---------------------------------------------------------------------------
+prediction:
+  # Prediction horizon: how many steps ahead to predict
+  horizon_steps: 1               # 1 step = 5 seconds ahead (at 5s interval)
+  
+  # Targets
+  contention_target: "conflict_rate"  # regression target for contention
+  network_target: "network_rtt_ms"    # regression target for network
+  
+  # Classification thresholds (for optional classification task)
+  contention_threshold: 0.15     # above this = "high" contention
+  network_rtt_threshold: 20.0    # above this (ms) = "degraded" network
+  
+  # Feature engineering
+  lag_features: [1, 2, 3, 5]     # number of past steps to use as lag features
+  rolling_windows: [3, 5, 10]    # window sizes for rolling statistics
+  
+  # Train/validation/test split (chronological, by experiment)
+  # Experiments are split, not individual rows
+  train_ratio: 0.6
+  val_ratio: 0.2
+  test_ratio: 0.2
+
+# ---------------------------------------------------------------------------
+# Model training
+# ---------------------------------------------------------------------------
+training:
+  random_seed: 42
+  
+  # Models to train
+  models:
+    baseline:
+      type: "persistence"        # predict last known value
+    
+    random_forest:
+      n_estimators: 200
+      max_depth: 15
+      min_samples_split: 5
+      min_samples_leaf: 2
+      n_jobs: -1
+    
+    xgboost:
+      n_estimators: 200
+      max_depth: 8
+      learning_rate: 0.1
+      subsample: 0.8
+      colsample_bytree: 0.8
+      n_jobs: -1
+  
+  # Optuna hyperparameter tuning
+  optuna:
+    enabled: false               # Set to true when compute budget allows
+    n_trials: 50
+    timeout_seconds: 600
+
+# ---------------------------------------------------------------------------
+# Adaptive controller
+# ---------------------------------------------------------------------------
+controller:
+  # Minimum interval between protocol switches (seconds)
+  min_switch_interval_sec: 30
+  
+  # Switching cost estimates (milliseconds of throughput disruption)
+  switching_costs:
+    OCC_to_2PL: 500
+    OCC_to_MVCC: 300
+    "2PL_to_OCC": 500
+    "2PL_to_MVCC": 400
+    MVCC_to_OCC: 300
+    MVCC_to_2PL: 400
+  
+  # Decision thresholds
+  thresholds:
+    high_contention: 0.20
+    low_contention: 0.05
+    high_network_rtt: 50.0       # ms
+    low_network_rtt: 10.0        # ms
+    
+  # Hysteresis: require this much improvement to justify a switch
+  improvement_threshold: 0.10    # 10% predicted improvement required
+  
+  # Protocol suitability (research-informed starting points)
+  # These scores represent relative suitability [0, 1]
+  protocol_suitability:
+    OCC:
+      low_contention_normal_network: 0.9
+      low_contention_degraded_network: 0.6
+      high_contention_normal_network: 0.3
+      high_contention_degraded_network: 0.2
+    "2PL":
+      low_contention_normal_network: 0.5
+      low_contention_degraded_network: 0.3
+      high_contention_normal_network: 0.7
+      high_contention_degraded_network: 0.4
+    MVCC:
+      low_contention_normal_network: 0.7
+      low_contention_degraded_network: 0.5
+      high_contention_normal_network: 0.8
+      high_contention_degraded_network: 0.6
+
+# ---------------------------------------------------------------------------
+# Experiment comparison
+# ---------------------------------------------------------------------------
+experiments:
+  strategies: ["static_occ", "static_2pl", "static_mvcc", "reactive", "predictive"]
+  measurement_window_sec: 600    # 10-minute measurement windows
+  warmup_sec: 60                 # skip first 60s of each experiment
+  repetitions: 3                 # repeat each configuration
+
+# ---------------------------------------------------------------------------
+# Visualization
+# ---------------------------------------------------------------------------
+visualization:
+  figure_format: "png"
+  figure_dpi: 150
+  figure_dir: "results/figures"
+  style: "seaborn-v0_8-whitegrid"
+  palette: "deep"
+
