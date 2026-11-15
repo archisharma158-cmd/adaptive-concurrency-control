@@ -1,0 +1,29 @@
+experiment_id: exp_real_0002
+status: partially_interfered
+description: "Workload A with concurrency=32 and 40ms netem injection. Clean data through sample 10 (t=25s); at t=17:21:11 task-516 (exp_real_0003) launched concurrently against same cluster ports, inducing contention collapse."
+workload: A
+workload_type: write_heavy
+read_write_ratio: 0.5
+concurrency: 32
+duration_sec: 60
+sampling_interval_sec: 3.0
+net_delay_ms: 40.0
+net_jitter_ms: 10.0
+net_loss_pct: 0.2
+inject_network_at_sec: 30
+cluster_topology:
+  nodes: 3
+  engine: "CockroachDB v23.2.0"
+  storage: "in-memory (1GB/node)"
+  ports: [26257, 26258, 26259]
+network_emulation:
+  tool: "Linux tc netem"
+  interface: "lo (loopback)"
+  scope: "affects both client-to-coordinator and inter-node Raft consensus traffic"
+active_protocol: MVCC
+git_commit_hash: 248ee14e82797eb5f7108a3f916caad0cbf49f15
+created_at_utc: "2026-11-15T17:20:54Z"
+valid_samples_range: "samples 1-10 (pre-collision)"
+excluded_from_clean_training: true
+exclusion_reason: "Concurrent execution conflict with task-516 on identical port allocation."
+

@@ -386,6 +386,45 @@ class TestIntegration:
         assert total == len(processed)
 
 
+class TestRealDatasetValidation:
+    """Tests covering authenticity, schema compliance, and invariants of real datasets."""
+
+    def test_real_raw_dataset_schema_and_authenticity(self):
+        from src.data.validation import validate_dataset, EXPECTED_COLUMNS
+
+        raw_dir = PROJECT_ROOT / "data" / "raw"
+        csv_files = list(raw_dir.glob("*.csv"))
+        if not csv_files:
+            pytest.skip("No real datasets found in data/raw yet.")
+
+        for csv_file in csv_files:
+            df = pd.read_csv(csv_file)
+            assert len(df) > 0, f"File {csv_file.name} is empty"
+
+            # Check column completeness
+            for col in EXPECTED_COLUMNS:
+                assert col in df.columns, f"Missing {col} in {csv_file.name}"
+
+            # Check protocol integrity (academic honesty: CockroachDB is MVCC)
+            assert (df["active_protocol"] == "MVCC").all(), f"Protocol mismatch in {csv_file.name}"
+
+            # Check latency invariant
+            assert (df["average_latency_ms"] <= df["p95_latency_ms"]).all()
+            assert (df["p95_latency_ms"] <= df["p99_latency_ms"]).all()
+
+            # Check bounds and rates
+            assert (df["conflict_rate"] >= 0.0).all() and (df["conflict_rate"] <= 1.0).all()
+            assert (df["abort_rate"] >= 0.0).all() and (df["abort_rate"] <= 1.0).all()
+            assert (df["throughput_tps"] >= 0.0).all()
+            assert (df["network_rtt_ms"] >= 0.0).all()
+
+            # Run full validator
+            report = validate_dataset(df)
+            errors = [f for f in report.findings if f["severity"] == "ERROR"]
+            assert len(errors) == 0, f"Validation errors found: {errors}"
+
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 

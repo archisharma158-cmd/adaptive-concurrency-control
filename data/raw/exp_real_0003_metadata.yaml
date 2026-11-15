@@ -1,0 +1,28 @@
+experiment_id: exp_real_0003
+status: invalid_execution_collision
+description: "Workload B with concurrency=16 launched while exp_real_0002 was holding loopback tc netem. At t=17:21:57 exp_real_0002 cleanup handler killed the CockroachDB cluster with pkill, leaving exp_real_0003 polling a terminated database resulting in hardcoded fallback telemetry."
+workload: B
+workload_type: read_heavy
+read_write_ratio: 0.95
+concurrency: 16
+duration_sec: 60
+sampling_interval_sec: 3.0
+net_delay_ms: 50.0
+net_jitter_ms: 12.0
+net_loss_pct: 0.2
+inject_network_at_sec: 30
+cluster_topology:
+  nodes: 3
+  engine: "CockroachDB v23.2.0"
+  storage: "in-memory (1GB/node)"
+  ports: [26257, 26258, 26259]
+network_emulation:
+  tool: "Linux tc netem"
+  interface: "lo (loopback)"
+  scope: "affects both client-to-coordinator and inter-node Raft consensus traffic"
+active_protocol: MVCC
+git_commit_hash: 248ee14e82797eb5f7108a3f916caad0cbf49f15
+created_at_utc: "2026-11-15T17:21:36Z"
+excluded_from_clean_training: true
+exclusion_reason: "Invalid execution due to overlapping background tasks, inherited tc netem from exp_real_0002, and subsequent mid-run cluster SIGKILL from exp_real_0002 exit hook."
+

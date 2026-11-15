@@ -1,7 +1,9 @@
 # Predictive Network- and Contention-Aware Concurrency Control Switching with Switching-Cost Optimization in Distributed Databases
 
-[![Tests](https://img.shields.io/badge/pytest-23%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-24%20passed-brightgreen.svg)]()
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg)]()
+[![Database](https://img.shields.io/badge/CockroachDB-v23.2.0-red.svg)]()
+[![TrafficControl](https://img.shields.io/badge/Linux-tc_netem-orange.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 An academic research implementation and experimental framework investigating whether predicting transaction contention and network degradation—while explicitly accounting for protocol-switching costs and hysteresis—improves the performance, stability, and abort rates of distributed database management systems.
@@ -84,10 +86,13 @@ adaptive-concurrency-control/
 │       └── run_experiments.py     # End-to-end comparative benchmark runner
 │
 ├── scripts/
+│   ├── run_real_experiment.py     # End-to-end CockroachDB + YCSB + tc netem physical experiment runner
+│   ├── run_matrix_experiments.py  # Automated sequential matrix runner (Workloads A/B/C, delays 15-55ms)
+│   ├── combine_real_datasets.py   # Aggregator for verified genuine physical CSV traces
+│   ├── generate_real_eda_and_comparison.py # Real benchmark visualizations and comparative report
+│   ├── collect_metrics.py         # Benchmark adapter interface for telemetry harvesting
+│   ├── preprocess_data.py         # CLI preprocessing & feature engineering runner
 │   ├── generate_workloads.py      # Synthetic testbed data generator
-│   ├── collect_metrics.py         # Adapter interface for live benchmarks (YCSB/tc netem)
-│   ├── preprocess_data.py         # CLI preprocessing & validation runner
-│   ├── generate_eda_visualizations.py # 10 publication-quality exploratory charts
 │   └── build_notebooks.py         # Programmatic builder for Jupyter notebooks
 │
 ├── notebooks/
@@ -104,23 +109,24 @@ adaptive-concurrency-control/
 │   ├── model_comparison.csv       # Quantitative ML metrics (MAE, RMSE, R2, MAPE)
 │   ├── benchmark_comparison.csv   # Controller comparative metrics
 │   ├── experiment_results_detailed.csv # Per-step trace logs
-│   └── figures/                   # 16 publication-ready figures (.png)
+│   └── figures/                   # 24 publication-ready figures (.png) (8 real physical + 16 testbed)
 │
 ├── docs/
 │   ├── research_methodology.md    # Hypotheses, theoretical framework & architecture
 │   ├── dataset_documentation.md   # Feature schema, units, and integrity constraints
 │   ├── prediction_target.md       # Target formulation & leakage prevention
 │   ├── controller_design.md       # Utility model, hysteresis & database transition steps
-│   └── experiment_protocol.md     # Setup guide for live DBs (CockroachDB/TiDB/YCSB)
+│   └── experiment_protocol.md     # Setup guide for live DBs (CockroachDB/YCSB/tc netem)
 │
 ├── reports/
-│   ├── data_quality_report.md     # Automated data validation findings
-│   ├── model_evaluation.md        # Comprehensive ML performance report
+│   ├── real_experiment_comparison.md # Cross-experiment systems analysis & Little's Law validation
+│   ├── real_data_quality_report.md# Automated validation audit on combined real dataset
+│   ├── model_evaluation.md        # Comprehensive ML performance report on real holdout testbed
 │   ├── experimental_results.md    # Strategy comparison and thrashing analysis
-│   └── limitations.md             # Threats to validity and real-world considerations
+│   └── limitations.md             # Threats to validity, loopback netem scope, and MVCC boundary
 │
 └── tests/
-    └── test_pipeline.py           # 23 unit and integration tests (100% passing)
+    └── test_pipeline.py           # 24 unit, schema, and physical data invariant tests (100% passing)
 ```
 
 ---
@@ -140,34 +146,37 @@ cd adaptive-concurrency-control
 pip install -r requirements.txt
 ```
 
-### End-to-End Pipeline Reproduction
+### End-to-End Real Database Pipeline Reproduction (CockroachDB + WSL 2)
 
-Execute the complete pipeline from scratch using these five commands:
+Execute the complete physical research pipeline using verified physical experiments:
 
 ```bash
-# Step 1: Generate synthetic testbed data
-python scripts/generate_workloads.py
+# Step 1: Run full unit, schema, and dataset invariant tests
+python -m pytest tests/ -v
 
-# Step 2: Validate and preprocess data (engineers lags & prediction targets)
-python scripts/preprocess_data.py
+# Step 2: Combine verified physical experiments (excludes contaminated pilot runs)
+python scripts/combine_real_datasets.py
 
-# Step 3: Train machine learning models
-python -m src.models.train --data data/processed/processed_data.csv
+# Step 3: Generate 8 physical EDA figures and comparative markdown report
+python scripts/generate_real_eda_and_comparison.py
 
-# Step 4: Evaluate models on chronological holdout test set
-python -m src.models.evaluate --data data/processed/processed_data.csv
+# Step 4: Validate and preprocess data (engineers lags, rolling statistics, & prediction targets)
+python scripts/preprocess_data.py --input data/raw/combined_real_dataset.csv --output data/processed/processed_real_data.csv --report reports/real_data_quality_report.md
 
-# Step 5: Run comparative benchmark experiment across all 5 strategies
-python -m src.experiments.run_experiments --data data/processed/processed_data.csv
+# Step 5: Train machine learning models (Persistence Baseline, Random Forest, XGBoost)
+python -m src.models.train --data data/processed/processed_real_data.csv
+
+# Step 6: Evaluate models on chronological holdout test set (unseen network regimes)
+python -m src.models.evaluate --data data/processed/processed_real_data.csv
+
+# Step 7: Run comparative benchmark experiment across all 5 strategies
+python -m src.experiments.run_experiments --data data/processed/processed_real_data.csv
 ```
 
-### Running EDA Visualizations & Tests
+### Running Physical Experiments in WSL 2 (Optional / Automated)
 ```bash
-# Generate all 10 publication EDA charts
-python scripts/generate_eda_visualizations.py
-
-# Run the full test suite
-python -m pytest tests/ -v
+# Execute automated matrix (Workloads A/B/C, concurrency 16/32, delays 15/35/55ms)
+wsl -u root -d Ubuntu -e bash -c "python3 '/mnt/c/Users/archi/OneDrive/Desktop/Research Paper/adaptive-concurrency-control/scripts/run_matrix_experiments.py'"
 ```
 
 ### Launching the Interactive Dashboard (Optional)

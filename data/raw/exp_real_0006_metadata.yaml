@@ -1,0 +1,28 @@
+experiment_id: exp_real_0006
+status: completed
+description: CockroachDB YCSB Workload C with concurrency=16, net_delay=35.0ms, jitter=8.0ms,
+  loss=0.2% injected at t=20s
+workload: C
+workload_type: scan_heavy
+read_write_ratio: 1.0
+concurrency: 16
+duration_sec: 45
+sampling_interval_sec: 3.0
+net_delay_ms: 35.0
+net_jitter_ms: 8.0
+net_loss_pct: 0.2
+inject_network_at_sec: 20
+cluster_topology:
+  nodes: 3
+  engine: CockroachDB v23.2.0
+  storage: in-memory (1GB/node)
+  ports:
+  - 26257
+  - 26258
+  - 26259
+network_emulation:
+  tool: Linux tc netem
+  interface: lo (loopback)
+  scope: affects both client-to-coordinator and inter-node Raft consensus traffic
+active_protocol: MVCC
+created_at_utc: '2026-11-15T17:57:32.172614+00:00'
