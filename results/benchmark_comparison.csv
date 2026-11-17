@@ -1,6 +1,6 @@
 strategy,mean_throughput,mean_latency,mean_p95_latency,mean_p99_latency,mean_abort_rate,total_switches,total_switch_overhead
 predictive,3510.3115,146.1577,292.3135,511.55,0.0,0,0.0
 reactive,3509.5404,158.7215,317.4415,555.5227,0.0,1,300.0
-static_2pl,3510.3115,146.1577,292.3135,511.55,0.0,0,0.0
-static_mvcc,3510.3115,146.1577,292.3135,511.55,0.0,0,0.0
+static_2pl,2197.9585,250.4304,500.8581,876.5046,0.0,0,0.0
+static_mvcc,2888.0031,147.6119,295.2254,516.6423,0.0,0,0.0
 static_occ,3510.3115,146.1577,292.3135,511.55,0.0,0,0.0

@@ -139,7 +139,9 @@ def run_strategy_experiment(
     pd.DataFrame with per-observation results.
     """
     results = []
-    current_protocol = "OCC"  # starting protocol
+    # If the controller is static with a fixed protocol, start with that protocol.
+    # Otherwise, default to OCC as the initial baseline protocol.
+    current_protocol = getattr(controller, "fixed_protocol", "OCC")
     switch_count = 0
     total_switching_overhead = 0.0
 

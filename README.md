@@ -28,18 +28,36 @@ Distributed databases handle concurrent transactions across interconnected nodes
 
 ## 2. Quantitative Results Summary
 
-All results are obtained under identical holdout test configurations (5 holdout experiments, 595 observations, strict chronological separation with zero data leakage):
+> [!IMPORTANT]
+> **Scientific Audit Notice:** The complete, peer-reviewed scientific validity audit of this research project is documented in [FINAL_SCIENTIFIC_AUDIT.md](file:///c:/Users/archi/OneDrive/Desktop/Research Paper/adaptive-concurrency-control/reports/FINAL_SCIENTIFIC_AUDIT.md).
+>
+> Two evaluation stages were conducted:
+> 1. **Synthetic Simulation Pipeline:** High-level validation of the multi-protocol simulation framework (595 synthetic observations).
+> 2. **Physical Distributed Benchmark:** Genuine 3-node CockroachDB cluster executing YCSB workloads under Linux `tc netem` network degradation (94 physical observations, 7 independent experiments).
 
-### A. Machine Learning Prediction Performance
+### A. Physical CockroachDB Benchmark Results (Holdout Test Split: `exp_real_0008` & `exp_real_0009`)
 
-| Prediction Target | Baseline ($R^2$) | Random Forest ($R^2$) | XGBoost ($R^2$) | Best MAE |
-| :--- | :--- | :--- | :--- | :--- |
-| **Contention** (`conflict_rate`) | 0.9788 | 0.9669 | 0.9701 | 0.0123 |
-| **Network RTT** (`network_rtt_ms`) | 0.9846 | 0.9714 | 0.9742 | 4.0929 ms |
+#### Machine Learning Forecasting Performance (Target $h=1$ step, $3\text{s}$ lookahead):
+| Prediction Target | Persistence Baseline ($R^2$) | Random Forest ($R^2$) | XGBoost ($R^2$) | Best MAE | Top Leading Predictor |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Contention** (`conflict_rate`) | -1.1065 | +0.1648 | **+0.3777** | **0.000656** | `network_rtt_ms_lag_3` (50.3%) |
+| **Network RTT** (`network_rtt_ms`) | -0.2711 | **+0.4405** | -0.8757 | **36.55 ms** | `network_jitter_ms_rmean_5` (12.8%) |
 
-*Note: The persistence baseline ($\hat{y}_{t+1} = y_t$) is documented alongside ML models following academic best practices.*
+#### Controller Benchmark Comparison on Real Physical Traces:
+| Concurrency Control Strategy | Mean Throughput (TPS) | Mean Latency (ms) | P95 Latency (ms) | P99 Latency (ms) | Total Switches | Switching Disruption (ms) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Proposed Predictive Controller** | **3,510.31** | **146.16** | **292.31** | **511.55** | **0** | **0.0 ms** |
+| **Static OCC Baseline** | 3,510.31 | 146.16 | 292.31 | 511.55 | 0 | 0.0 ms |
+| **Static MVCC Baseline** | 2,888.00 | 147.61 | 295.23 | 516.64 | 0 | 0.0 ms |
+| **Static 2PL Baseline** | 2,197.96 | 250.43 | 500.86 | 876.50 | 0 | 0.0 ms |
+| **Reactive Threshold Controller** | 3,509.54 | 158.72 | 317.44 | 555.52 | 1 | 300.0 ms |
 
-### B. Controller Benchmark Comparison
+**Verified Empirical Finding:**  
+Under low contention, static OCC is optimal ($3,510.31\text{ TPS}$, $146.16\text{ms}$). The predictive controller does not artificially boost raw throughput over static OCC; rather, its verified empirical advantage is **preventing unwarranted reactive switching**. When network delay surged to $116.8\text{ms}$, the reactive controller triggered an unnecessary switch costing $300\text{ms}$ in overhead (+8.6% mean latency penalty, $158.72\text{ms}$). The predictive controller correctly suppressed this switch.
+
+---
+
+### B. Initial Synthetic Simulation Pipeline (595 observations)
 
 | Concurrency Control Strategy | Mean Throughput (TPS) | Mean Latency (ms) | P95 Latency (ms) | P99 Tail Latency (ms) | Mean Abort Rate | Total Switches | Total Switch Overhead |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
